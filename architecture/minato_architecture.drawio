@@ -19,6 +19,11 @@
           <mxGeometry x="300" y="100" width="160" height="50" as="geometry" />
         </mxCell>
 
+        <!-- PII filter (guardrail) -->
+        <mxCell id="piiFilter" value="PIIフィルター（src/pii_filter.py）&lt;br&gt;メール・電話・番号列等を正規表現でマスク" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="270" y="170" width="220" height="40" as="geometry" />
+        </mxCell>
+
         <!-- LLM container box (background) -->
         <mxCell id="llmBox" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;verticalAlign=top;" vertex="1" parent="1">
           <mxGeometry x="260" y="220" width="240" height="150" as="geometry" />
@@ -44,7 +49,10 @@
         </mxCell>
 
         <!-- Edges -->
-        <mxCell id="e1" value="① テキスト入力" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=11;" edge="1" parent="1" source="user" target="llmBox">
+        <mxCell id="e1" value="① テキスト入力" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=11;" edge="1" parent="1" source="user" target="piiFilter">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1b" value="①&#39; マスク済みテキスト" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=11;" edge="1" parent="1" source="piiFilter" target="llmBox">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="e2" value="② 応答テキストを生成" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=11;" edge="1" parent="1" source="llmBox" target="voicevox">

@@ -39,3 +39,9 @@ python architecture/generate_architecture_diagram.py  # 構成図PNG再生成
 - torch は requirements.txt では CPU版。CUDA版をrequirementsに入れないこと（ポータビリティ優先）
 - モデルの応答品質は19件学習の範囲が限界。訓練外の質問への誤答は既知の制約であり、バグ扱いしない
 - 構成を変えたら `architecture/` の図も更新すること
+
+## PIIガード（必ず維持すること）
+
+- `src/pii_filter.py`: 全ユーザー入力はLLMに渡る前にこれでマスクされる。talk/apiの両モードで呼び出しを外さないこと
+- `scripts/check_pii.py`: CIの `pii-check` ジョブとpre-commitが使う。検出語はSecret `PII_DENYLIST` とローカル `.pii-denylist.txt`（gitignore済み）から読む — **検出語をリポジトリ内に書かないこと**（それ自体がPII漏洩になる）
+- 正規表現で `` を日本語文字と数字の境界に使わない（漢字・かなは\wに含まれ境界が発生しない）。数字境界は `(?<!\d)` / `(?!\d)` を使う

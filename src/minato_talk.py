@@ -29,6 +29,7 @@ import soundfile as sf  # noqa: E402
 import sounddevice as sd  # noqa: E402
 import torch  # noqa: E402
 from peft import PeftModel  # noqa: E402
+from pii_filter import mask_pii  # noqa: E402
 from transformers import AutoModelForCausalLM, AutoTokenizer  # noqa: E402
 
 BASE_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
@@ -113,6 +114,9 @@ def main():
             break
         if not user_text:
             continue
+        user_text, pii_found = mask_pii(user_text)
+        if pii_found:
+            print(f"（入力内の {'/'.join(pii_found)} をマスクしました）")
         reply = generate_reply(tok, model, user_text)
         print(f"ミナト: {reply}")
         synthesize_and_play(reply, args.speaker)
