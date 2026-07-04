@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      voicevox:
+        image: voicevox/voicevox_engine:cpu-ubuntu20.04-latest
+        ports:
+          - 50021:50021
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Lint
+        run: |
+          pip install ruff
+          ruff check src/ --output-format=github
+
+      - name: Wait for VOICEVOX engine
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:50021/version && exit 0
+            sleep 2
+          done
+          echo "VOICEVOX did not become ready in time" >&2
+          exit 1
+
+      - name: Smoke test full pipeline (LLM generation + TTS)
+        run: |
+          VOICEVOX_URL=http://localhost:50021 python src/api.py &
+          API_PID=$!
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:8080/health && break
+            sleep 5
+          done
+          echo '{"text":"self test"}' > /tmp/req.json
+          curl -sf -X POST http://localhost:8080/chat \
+            -H "Content-Type: application/json" \
+            --data-binary @/tmp/req.json \
+            -o /tmp/response.wav
+          file /tmp/response.wav | grep -qi "WAVE audio" \
+            && echo "PASS: valid WAV audio returned by /chat" \
+            || (echo "FAIL: response was not a valid WAV file" && exit 1)
+          kill "$API_PID"

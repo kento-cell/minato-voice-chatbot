@@ -1,0 +1,19 @@
+services:
+  voicevox:
+    # Official VOICEVOX Engine image (CPU build -> runs identically on any machine,
+    # no GPU/driver setup required). No manual desktop-app installation needed.
+    image: voicevox/voicevox_engine:cpu-ubuntu20.04-latest
+    ports:
+      - "50021:50021"
+    restart: unless-stopped
+
+  app:
+    # ミナトAPI: headless text-in / speech-out service (see src/api.py).
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - VOICEVOX_URL=http://voicevox:50021
+    depends_on:
+      - voicevox
+    restart: unless-stopped

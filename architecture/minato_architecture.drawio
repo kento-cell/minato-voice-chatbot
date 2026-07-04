@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram id="minato-architecture" name="ミナト アーキテクチャ">
+    <mxGraphModel dx="800" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="音声AIチャットボット「ミナト」アーキテクチャ図" style="text;html=1;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="600" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="個人学習プロジェクト（完全ローカル動作・外部通信なし）" style="text;html=1;fontSize=12;fontColor=#666666;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="600" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- User -->
+        <mxCell id="user" value="ユーザー&lt;br&gt;（テキスト入力）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="300" y="100" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- LLM container box (background) -->
+        <mxCell id="llmBox" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="260" y="220" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="llmTitle" value="ミナト（キャラクターLLM）" style="text;html=1;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="260" y="228" width="240" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="baseModel" value="ベースモデル&lt;br&gt;Qwen2.5-0.5B-Instruct&lt;br&gt;（オープンソース／パラメータは凍結）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F5F5F5;strokeColor=#666666;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="272" y="255" width="216" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="loraModel" value="LoRAアダプタ&lt;br&gt;自作ファインチューニング（約35MB）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="272" y="310" width="216" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- VOICEVOX -->
+        <mxCell id="voicevox" value="VOICEVOX&lt;br&gt;ローカル音声合成API（port 50021）&lt;br&gt;話者：ずんだもん" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="260" y="410" width="240" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Output -->
+        <mxCell id="output" value="音声出力&lt;br&gt;（winsoundでローカル再生）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="300" y="520" width="160" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" value="① テキスト入力" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=11;" edge="1" parent="1" source="user" target="llmBox">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="② 応答テキストを生成" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=11;" edge="1" parent="1" source="llmBox" target="voicevox">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="③ audio_query → synthesis（wav）" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=11;" edge="1" parent="1" source="voicevox" target="output">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Future expansion box -->
+        <mxCell id="futureBox" value="拡張予定（未実装）" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;fillColor=none;strokeColor=#999999;verticalAlign=top;fontStyle=1;fontSize=12;align=center;" vertex="1" parent="1">
+          <mxGeometry x="620" y="220" width="240" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="future1" value="マイク入力（音声認識／STT）" style="text;html=1;fontSize=11;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="635" y="255" width="210" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="future2" value="簡易GUI" style="text;html=1;fontSize=11;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="635" y="285" width="210" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="future3" value="通話連携（一般的な音声通話API）" style="text;html=1;fontSize=11;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="635" y="315" width="210" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="future4" value="会話履歴の保持（マルチターン対応）" style="text;html=1;fontSize=11;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="635" y="345" width="210" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Footer -->
+        <mxCell id="footer" value="※完全ローカル動作。外部インターネット通信なし。個人の学習用プロトタイプ。" style="text;html=1;fontSize=10;fontColor=#999999;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="620" width="600" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
