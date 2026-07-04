@@ -7,9 +7,7 @@
 LoRA微調整した軽量LLM（0.5B）＋ [VOICEVOX](https://voicevox.hiroshiba.jp/) 音声合成。
 クラウドAPI不使用・推論時の外部通信ゼロ・低スペックPC（GPU無し）でも動きます。
 
-A fully-local voice-chatbot playground: bring your own AI alter-ego
-(persona card + optional LoRA + voice). No cloud APIs, no external calls at
-inference time. This repo intentionally contains no company or personal names.
+このリポジトリには実在の個人名・社名を一切含めない方針で運営しています（詳細は後述の安全事項）。
 
 ## 🚀 クイックスタート（3ステップ・5分）
 
@@ -49,68 +47,51 @@ python src/minato_talk.py --character minato  # キャラを指定して会話
 
 ルール違反のPRは**マージボタンが物理的に押せなくなる**ので、壊す心配なく気軽にどうぞ。
 
-## Architecture
+## アーキテクチャ
 
 ![architecture](architecture/minato_architecture.png)
 
-The diagram source (`architecture/minato_architecture.drawio`) can be opened and
-edited in [draw.io](https://app.diagrams.net) or the VS Code
+図の元データ（`architecture/minato_architecture.drawio`）は [draw.io](https://app.diagrams.net) か、VS Codeの
 [Draw.io Integration](https://marketplace.visualstudio.com/items?itemName=hediet.vscode-drawio)
-extension. Regenerate the PNG anytime with:
+拡張機能で開いて編集できます。PNGはいつでも再生成可能:
 
 ```bash
 python architecture/generate_architecture_diagram.py architecture/minato_architecture.png
 ```
 
-| Component | Technology |
+| コンポーネント | 技術 |
 |---|---|
-| Base LLM | [Qwen2.5-0.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct) (frozen, shared by all characters) |
-| Characters | Self-contained packs under `characters/<name>/` (persona card + optional LoRA + voice config) |
-| Text-to-speech | [VOICEVOX Engine](https://github.com/VOICEVOX/voicevox_engine) (local HTTP API) — voice-clone engines pluggable per pack |
-| Playback (desktop mode) | `sounddevice` + `soundfile` (cross-platform: Windows/macOS/Linux) |
+| ベースLLM | [Qwen2.5-0.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct)（凍結・全キャラ共通） |
+| キャラクター | `characters/<name>/` 配下の自己完結パック（人格カード＋任意のLoRA＋声設定） |
+| 音声合成 | [VOICEVOXエンジン](https://github.com/VOICEVOX/voicevox_engine)（ローカルHTTP API）。声クローンエンジンはパック単位で差し替え可能 |
+| 音声再生（デスクトップモード） | `sounddevice`＋`soundfile`（Windows / macOS / Linux 対応） |
 
-## Character packs
+## キャラクターパック
 
-Each character is one directory — contributors work in parallel without ever
-touching the same files:
+キャラ1体＝ディレクトリ1つ。**作業者同士が同じファイルを触らない**構造なので、何人同時に開発してもコンフリクトしません:
 
 ```
 characters/<name>/
-├── persona.md      # required: the personality card (this alone is enough)
-├── config.json     # required: voice engine / speaker / optional lora path
-├── lora/           # optional: LoRA adapter for stronger persona fidelity
-└── voice/          # optional: personal voice model — NEVER committed (CI-enforced)
+├── persona.md      # 必須: 人格カード（これだけで参戦できる）
+├── config.json     # 必須: 声エンジン／話者ID／任意のloraパス
+├── lora/           # 任意: 人格再現を強化するLoRAアダプタ
+└── voice/          # 任意: 本人の声モデル — 絶対にコミットされない（CIが強制）
 ```
 
-```bash
-python src/minato_talk.py --list-characters     # discovered packs
-python src/minato_talk.py --character minato    # talk to a specific one
-```
+自分のキャラの作り方は [CONTRIBUTING.md](CONTRIBUTING.md) へ。
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to create your own character.
+## 実行方法は2つ
 
-## Two ways to run it
+### 1. デスクトップモード（スピーカーから声が出る）
 
-### 1. Desktop mode (talks out loud through your speakers)
-
-```bash
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
-# Start a VOICEVOX engine (either works):
-#   a) the desktop app, or
-#   b) docker compose up voicevox
-
-python src/minato_talk.py
-```
+クイックスタートの手順そのままです。補助コマンド:
 
 ```
-python src/minato_talk.py --list-characters   # discovered character packs
-python src/minato_talk.py --list-speakers     # available VOICEVOX voices
+python src/minato_talk.py --list-characters   # キャラパック一覧
+python src/minato_talk.py --list-speakers     # VOICEVOXの話者一覧
 ```
 
-### 2. Headless API mode (containerized, no speakers needed)
+### 2. ヘッドレスAPIモード（コンテナ動作・スピーカー不要）
 
 ```bash
 docker compose up --build
@@ -123,40 +104,36 @@ curl -X POST http://localhost:8080/chat \
   -o reply.wav
 ```
 
-Returns raw WAV bytes; the generated reply text is in the
-`X-Minato-Reply-Text` response header (URL-encoded).
+WAVバイナリがそのまま返ります。生成された返答テキストはレスポンスヘッダー
+`X-Minato-Reply-Text`（URLエンコード済み）に入っています。
 
-The `app` image is CPU-only by design, so `docker compose up` works identically
-on any machine — no NVIDIA driver / CUDA toolkit required. If you have an NVIDIA
-GPU and run the desktop mode natively, install the CUDA build of torch instead
-for faster generation:
+`app`イメージは意図的にCPU専用で作ってあるため、**どのマシンでも同じように動きます**
+（NVIDIAドライバ・CUDA不要）。NVIDIA GPU持ちでデスクトップモードを速くしたい場合のみ:
 
 ```bash
 pip install torch --index-url https://download.pytorch.org/whl/cu124
 ```
 
-## Re-training the persona
+## ペルソナの再学習
 
-Minato's LoRA adapter (`characters/minato/lora/`) was trained on
-`data/train.jsonl` (19 examples, ~1 minute on a single consumer GPU).
-To reproduce or modify it:
+ミナトのLoRAアダプタ（`characters/minato/lora/`）は `data/train.jsonl`（19件、一般的なGPUで約1分）で学習したものです。再現・改変するには:
 
 ```bash
-python data/make_data.py       # regenerate data/train.jsonl
-python finetune_lora.py        # trains out/lora/ — copy into your pack's lora/
+python data/make_data.py       # data/train.jsonl を再生成
+python finetune_lora.py        # out/lora/ に学習 → 自分のパックの lora/ にコピー
 ```
 
 ## CI/CD
 
-- **CI** (`.github/workflows/ci.yml`): on every push/PR, lints the code and runs
-  a real end-to-end smoke test — spins up the VOICEVOX engine as a service
-  container, starts the API, sends a chat request, and asserts a valid WAV comes
-  back. Free (GitHub Actions, public repo).
-- **CD** (`.github/workflows/cd.yml`): on pushing a version tag (`v*.*.*`),
-  builds the headless API image and publishes it to GitHub Container Registry
-  (`ghcr.io`) — free for public repos, no external registry account needed.
+- **CI**（`.github/workflows/ci.yml`）: push/PRのたびにlint＋本物のエンドツーエンドテスト
+  （VOICEVOXコンテナを立ち上げ、APIにリクエストを送り、正しいWAVが返るかまで検証）。
+  加えて `pii-check`（個人情報スキャン）と `pack-lint`（パック構造検査）が必須で走ります
+- **Guard**（`.github/workflows/guard.yml`）: コア領域の変更権限と「1PR=1キャラ」を、
+  PR側から改ざんできない方式（pull_request_target）で強制
+- **CD**（`.github/workflows/cd.yml`）: バージョンタグ（`v*.*.*`）のpushで、ヘッドレスAPIの
+  Dockerイメージを GitHub Container Registry（ghcr.io）へ自動公開
 
-## 安全に使うために / Safety notes
+## 安全に使うために
 
 **プライバシー（設計上の保証）**
 - 推論は完全ローカルです。あなたの会話・音声がこのソフトウェアから外部サーバーへ送信されることはありません（通信はモデルのダウンロードのみ）
@@ -176,7 +153,7 @@ python finetune_lora.py        # trains out/lora/ — copy into your pack's lora
 **このリポジトリをフォークする方へ**
 - 本家リポジトリのCI保護・ブランチ保護・Secretは**フォーク先には引き継がれません**。フォークで自分の声モデルや個人データを扱う場合は、フォークをPrivateにするか、同等の保護（Actions有効化等）を自分で設定してください
 
-## Known limitations / Roadmap
+## 既知の制限とロードマップ
 
 - マイク入力は未実装（テキスト入力→音声出力のみ）。**Phase 2**で対応予定（faster-whisper・CPU可）
 - 会話記憶はセッション内のみ（直近10ターン・ディスク保存なし）
@@ -184,6 +161,6 @@ python finetune_lora.py        # trains out/lora/ — copy into your pack's lora
 - ミナトの学習データは19件のみ — その範囲外の質問には、もっともらしい誤答をすることがあります（小型モデルの既知の限界であり仕様です）
 - Linuxでデスクトップ再生する場合、`libportaudio2` のインストールが必要なことがあります（`sudo apt install libportaudio2`）
 
-## License
+## ライセンス
 
-MIT — see [LICENSE](LICENSE).
+MIT — [LICENSE](LICENSE) 参照。
