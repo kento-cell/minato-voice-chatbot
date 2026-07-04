@@ -26,10 +26,30 @@ python architecture/generate_architecture_diagram.py architecture/minato_archite
 
 | Component | Technology |
 |---|---|
-| Base LLM | [Qwen2.5-0.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct) (frozen) |
-| Persona | LoRA adapter, self-trained (`out/lora/`, ~35MB) |
-| Text-to-speech | [VOICEVOX Engine](https://github.com/VOICEVOX/voicevox_engine) (local HTTP API) |
+| Base LLM | [Qwen2.5-0.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct) (frozen, shared by all characters) |
+| Characters | Self-contained packs under `characters/<name>/` (persona card + optional LoRA + voice config) |
+| Text-to-speech | [VOICEVOX Engine](https://github.com/VOICEVOX/voicevox_engine) (local HTTP API) — voice-clone engines pluggable per pack |
 | Playback (desktop mode) | `sounddevice` + `soundfile` (cross-platform: Windows/macOS/Linux) |
+
+## Character packs
+
+Each character is one directory — contributors work in parallel without ever
+touching the same files:
+
+```
+characters/<name>/
+├── persona.md      # required: the personality card (this alone is enough)
+├── config.json     # required: voice engine / speaker / optional lora path
+├── lora/           # optional: LoRA adapter for stronger persona fidelity
+└── voice/          # optional: personal voice model — NEVER committed (CI-enforced)
+```
+
+```bash
+python src/minato_talk.py --list-characters     # discovered packs
+python src/minato_talk.py --character minato    # talk to a specific one
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to create your own character.
 
 ## Two ways to run it
 
@@ -79,12 +99,13 @@ pip install torch --index-url https://download.pytorch.org/whl/cu124
 
 ## Re-training the persona
 
-The LoRA adapter in `out/lora/` was trained on `data/train.jsonl`
-(19 examples, ~1 minute on a single consumer GPU). To reproduce or modify it:
+Minato's LoRA adapter (`characters/minato/lora/`) was trained on
+`data/train.jsonl` (19 examples, ~1 minute on a single consumer GPU).
+To reproduce or modify it:
 
 ```bash
 python data/make_data.py       # regenerate data/train.jsonl
-python finetune_lora.py        # trains out/lora/ from data/train.jsonl
+python finetune_lora.py        # trains out/lora/ — copy into your pack's lora/
 ```
 
 ## CI/CD
@@ -96,6 +117,26 @@ python finetune_lora.py        # trains out/lora/ from data/train.jsonl
 - **CD** (`.github/workflows/cd.yml`): on pushing a version tag (`v*.*.*`),
   builds the headless API image and publishes it to GitHub Container Registry
   (`ghcr.io`) — free for public repos, no external registry account needed.
+
+## 安全に使うために / Safety notes
+
+**プライバシー（設計上の保証）**
+- 推論は完全ローカルです。あなたの会話・音声がこのソフトウェアから外部サーバーへ送信されることはありません（通信はモデルのダウンロードのみ）
+- 会話ログはデフォルトで保存されません
+- 入力テキスト中のメールアドレス・電話番号等はLLMに渡る前に自動マスクされます（`src/pii_filter.py`）
+- APIサーバー（`src/api.py`）のデフォルトは `127.0.0.1`（自分のPCからのみアクセス可）です。`API_HOST=0.0.0.0` を明示した場合のみLANに公開されます。**認証機能はないため、信頼できないネットワークで公開しないでください**
+
+**VOICEVOXの利用規約（音声を公開する場合は必須）**
+- 合成音声を動画・配信等で公開する場合、[VOICEVOX利用規約](https://voicevox.hiroshiba.jp/term/)により**クレジット表記が必須**です（例: `VOICEVOX:ずんだもん`）
+- 加えて**各キャラクター（音声ライブラリ）の個別規約**が適用されます。使用するキャラクターの規約を必ず確認してください
+- 商用・非商用とも利用可能ですが、上記の条件に従う必要があります
+
+**声モデル（ボイスクローン）について**
+- 学習・使用してよいのは**あなた自身の声だけ**です。他人・有名人の声の無断クローンは、肖像権・パブリシティ権等の侵害となる可能性があります
+- 声モデルは `characters/*/voice/` に置き、**コミットしない**でください（.gitignore＋CIで二重にブロックされますが、意図を理解した上で扱ってください）
+
+**このリポジトリをフォークする方へ**
+- 本家リポジトリのCI保護・ブランチ保護・Secretは**フォーク先には引き継がれません**。フォークで自分の声モデルや個人データを扱う場合は、フォークをPrivateにするか、同等の保護（Actions有効化等）を自分で設定してください
 
 ## Known limitations
 

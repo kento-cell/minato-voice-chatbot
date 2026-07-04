@@ -71,6 +71,45 @@ GPUがなくても動きます（CPU推論）。詳細は [README.md](README.md)
 - Codex: リポジトリ直下の `AGENTS.md` を読むこと（自動で読まれます）
 - 人間と同じフロー（ブランチ→PR→CI→マージ）に従うこと。mainへの直接pushは人間同様ブロックされます
 
+## 🎭 自分のキャラクターを作る（メインの参加方法）
+
+**5分で参戦できます。** プログラミング不要、必要なのはMarkdown1枚:
+
+```bash
+mkdir -p characters/<あなたのキャラ名>/voice
+# 1. persona.md を書く（口調・性格・口癖・サンプル台詞）
+# 2. config.json を書く（最小例↓）
+```
+
+```json
+{ "name": "<キャラ名>", "display_name": "表示名",
+  "voice": { "engine": "voicevox", "speaker": 8, "fallback_speaker": 8 } }
+```
+
+```bash
+python src/minato_talk.py --character <キャラ名>   # 動作確認
+git switch -c feat/<キャラ名>                       # ブランチ → PR → CI緑 → 自分でマージOK
+```
+
+こだわりたい人の追加オプション（すべて任意）:
+- **LoRA学習**でより強い人格再現（`finetune_lora.py`参照。GPUが無ければGoogle Colab無料枠で可）
+- **自分の声モデル**（Style-Bert-VITS2等）を `voice/` に配置 → 自分の声で喋る（後述の注意必読）
+
+### 領域ルール（サーバー側で強制されます — 破りたくても破れません）
+
+| 領域 | 誰が触れるか | 強制手段 |
+|---|---|---|
+| `characters/<自分のキャラ>/` | あなた（PR→CI緑→**自分でマージ可、承認不要**） | repo-guard CI |
+| 他人のキャラディレクトリ | 触れない（1PR=1キャラ厳守） | repo-guard CI |
+| コア（`src/` `.github/` `scripts/` 等） | リポジトリオーナーのみ。提案はIssueで | repo-guard CI（改ざん不能なpull_request_target方式） |
+| `characters/*/voice/` へのコミット | 全員禁止（声は生体情報） | .gitignore + pack-lint CI |
+
+### 声モデルの絶対ルール
+
+1. **クローンしてよいのは自分自身の声だけ**。他人・有名人の声の学習は禁止（肖像権・パブリシティ権侵害のリスク）
+2. 声モデルは**絶対にコミットしない**（CIが物理的にブロックしますが、フォーク先では自衛してください）
+3. Google Colabで声学習する場合、**録音データをGoogleに渡すことになる**点は理解した上で使ってください
+
 ## テスト
 
 PRを出す前にローカルで最低限:

@@ -1,0 +1,44 @@
+name: Guard
+
+# Tamper-proof core gate.
+#
+# pull_request_target runs the BASE branch's workflow definition and scripts,
+# so a PR cannot modify this gate to bypass it. The job never checks out or
+# executes PR code — it only reads the changed-file list via the GitHub API.
+# ("The guard stands outside the gate it guards.")
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  repo-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4  # BASE branch (default for pull_request_target)
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch changed file list (API only, no PR code executed)
+        id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+            --paginate --jq '.[].filename' > /tmp/changed_files.txt
+          echo "changed files:"
+          cat /tmp/changed_files.txt
+
+      - name: Enforce core-access and single-pack rules
+        env:
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          python scripts/repo_guard.py \
+            --author "${{ github.event.pull_request.user.login }}" \
+            < /tmp/changed_files.txt

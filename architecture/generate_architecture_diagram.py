@@ -69,6 +69,13 @@ def main():
     fill, edge = COLORS["lora"]
     box(ax, (3.45, 3.95), 3.1, 0.6, "LoRAアダプタ\n自作ファインチューニング（約35MB）", fill, edge, fontsize=8.5)
 
+    # character packs feed the LLM (persona card + optional LoRA + voice config)
+    fill, edge = COLORS["lora"]
+    box(ax, (0.4, 4.1), 2.5, 1.2,
+        "characters/<name>/\nキャラパック（1人1ディレクトリ）\npersona.md＋LoRA(任意)\n＋声設定（voiceは非コミット）",
+        fill, edge, fontsize=8)
+    arrow(ax, (2.9, 4.7), (3.3, 4.7), "")
+
     fill, edge = COLORS["tts"]
     _, tts_top = box(ax, (3.3, 2.4), 3.4, 1.0, "VOICEVOX\nローカル音声合成API（port 50021）\n話者：ずんだもん", fill, edge, fontsize=9)
 

@@ -1,0 +1,10 @@
+{
+  "name": "minato",
+  "display_name": "ミナト",
+  "voice": {
+    "engine": "voicevox",
+    "speaker": 3,
+    "fallback_speaker": 3
+  },
+  "lora": "lora"
+}

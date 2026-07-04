@@ -9,3 +9,10 @@ venv/
 # Personal PII denylist for scripts/check_pii.py — NEVER commit this file
 # (it contains the very terms we're keeping out of the repo)
 .pii-denylist.txt
+
+# Personal voice models are biometric data — they must NEVER be committed.
+# (Backed up by CI: scripts/pack_lint.py fails any PR that includes them,
+#  even if someone bypasses this ignore with `git add -f`.)
+characters/*/voice/*
+!characters/*/voice/.gitkeep
+!characters/*/voice/README.md

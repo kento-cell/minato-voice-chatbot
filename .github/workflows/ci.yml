@@ -24,6 +24,16 @@ jobs:
           PII_DENYLIST: ${{ secrets.PII_DENYLIST }}
         run: python scripts/check_pii.py --all
 
+  pack-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate character pack structure
+        run: python scripts/pack_lint.py
+
   test:
     runs-on: ubuntu-latest
 

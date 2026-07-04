@@ -45,3 +45,14 @@ python architecture/generate_architecture_diagram.py  # 構成図PNG再生成
 - `src/pii_filter.py`: 全ユーザー入力はLLMに渡る前にこれでマスクされる。talk/apiの両モードで呼び出しを外さないこと
 - `scripts/check_pii.py`: CIの `pii-check` ジョブとpre-commitが使う。検出語はSecret `PII_DENYLIST` とローカル `.pii-denylist.txt`（gitignore済み）から読む — **検出語をリポジトリ内に書かないこと**（それ自体がPII漏洩になる）
 - 正規表現で `` を日本語文字と数字の境界に使わない（漢字・かなは\wに含まれ境界が発生しない）。数字境界は `(?<!\d)` / `(?!\d)` を使う
+
+## キャラクターパック開発ルール（AI作業者は必ず遵守）
+
+このリポジトリは複数の作業者（全員AIアシスタント付き）が並行開発する。以下はサーバー側CI（repo-guard / pack-lint）でも強制されるが、AIは違反PRを作る前に自ら止まること:
+
+1. **触ってよいのは、担当ユーザー自身のキャラディレクトリ `characters/<name>/` だけ**。コア（src/, .github/, scripts/, tests/, data/, architecture/, ルート設定ファイル）と他人のキャラには触れない（オーナーのみ例外）
+2. **1つのPRで触れるキャラディレクトリは1つだけ**
+3. **`characters/*/voice/` 配下をコミットしない**（声モデル=生体情報。.gitignoreをgit add -fで突破してもpack-lintがブロックする）
+4. コアへの変更提案が必要な場合はIssueを立てる（PRは通らない）
+5. 新キャラの必須ファイル: persona.md（人格カード）と config.json（nameはディレクトリ名と一致）。キャラ一覧は自動発見なので登録ファイルは存在しない（作らないこと）
+6. 会話ログ・録音・個人情報をリポジトリに含めない
