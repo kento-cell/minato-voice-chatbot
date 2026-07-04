@@ -6,5 +6,6 @@
     "speaker": 3,
     "fallback_speaker": 3
   },
-  "lora": "lora"
+  "lora": "lora",
+  "signature": "— ミナトでした。"
 }

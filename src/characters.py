@@ -35,6 +35,7 @@ class Character:
     voice_engine: str
     voice_speaker: int
     lora_path: str | None  # absolute path, or None
+    signature: str | None = None  # fixed closing phrase; reply is cut after its first occurrence
 
 
 def _load_one(pack_dir: str) -> Character:
@@ -88,6 +89,7 @@ def _load_one(pack_dir: str) -> Character:
         voice_engine=engine,
         voice_speaker=speaker,
         lora_path=lora_path,
+        signature=cfg.get("signature"),
     )
 
 

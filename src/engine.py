@@ -72,3 +72,18 @@ def generate(tok, model, messages: list[dict], max_new_tokens: int = 120) -> str
             pad_token_id=tok.eos_token_id,
         )
     return tok.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
+
+def finalize_reply(character: Character, reply: str) -> str:
+    """Cut the reply after the first occurrence of the character's signature.
+
+    Small models drift or loop AFTER emitting their closing phrase
+    ("— ミナトでした。 — ミナトでした。…"); token-level penalties can't fix
+    this without corrupting the phrase itself (HF processors also penalize
+    prompt/history tokens). Truncating at the signature is loop-proof and
+    persona-preserving.
+    """
+    if character.signature:
+        idx = reply.find(character.signature)
+        if idx >= 0:
+            return reply[: idx + len(character.signature)]
+    return reply

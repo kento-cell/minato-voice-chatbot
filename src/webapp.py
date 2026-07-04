@@ -29,7 +29,7 @@ os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 import requests  # noqa: E402
 from characters import discover, load as load_character  # noqa: E402
-from engine import build_messages, generate, load_model, resolve_base_model  # noqa: E402
+from engine import build_messages, finalize_reply, generate, load_model, resolve_base_model  # noqa: E402
 from flask import Flask, jsonify, request, send_from_directory  # noqa: E402
 from pii_filter import mask_pii  # noqa: E402
 
@@ -63,9 +63,29 @@ def get_llm(character_name: str):
     return _llm_cache[character_name]
 
 
+# Whisper hallucinates these stock phrases on silent / near-silent input
+# (YouTube-outro artifacts from its training data). Treat them as "no speech".
+_HALLUCINATION_PHRASES = {
+    "ご視聴ありがとうございました",
+    "ご視聴ありがとうございました。",
+    "チャンネル登録お願いします",
+    "チャンネル登録お願いします。",
+    "おやすみなさい",
+    "ありがとうございました。",
+}
+
+
 def transcribe(audio_bytes: bytes) -> str:
-    segments, _info = get_stt().transcribe(io.BytesIO(audio_bytes), language="ja")
-    return "".join(s.text for s in segments).strip()
+    segments, _info = get_stt().transcribe(
+        io.BytesIO(audio_bytes),
+        language="ja",
+        vad_filter=True,  # trim silence -> the main defense against hallucination
+        condition_on_previous_text=False,
+    )
+    text = "".join(s.text for s in segments).strip()
+    if text in _HALLUCINATION_PHRASES:
+        return ""
+    return text
 
 
 def synthesize(text: str, speaker: int) -> bytes:
@@ -84,6 +104,7 @@ def run_turn(character_name: str, user_text: str) -> dict:
     character, tok, model, used_lora = get_llm(character_name)
     history = _history[character_name]
     reply = generate(tok, model, build_messages(character, history, user_text))
+    reply = finalize_reply(character, reply)
     history.append((user_text, reply))
     wav = synthesize(reply, character.voice_speaker)
     return {
@@ -132,7 +153,7 @@ def chat_audio():
     name = request.form.get("character") or "minato"
     recognized = transcribe(request.files["audio"].read())
     if not recognized:
-        return jsonify({"error": "聞き取れませんでした。もう一度話してください"}), 422
+        return jsonify({"error": "声を検出できませんでした。マイクの入力デバイス設定（ブラウザのアドレスバーのマイクアイコン→使用デバイス）を確認し、はっきり話してみてください"}), 422
     return jsonify(run_turn(name, recognized))
 
 
