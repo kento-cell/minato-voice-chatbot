@@ -48,3 +48,25 @@ def test_build_messages_includes_persona_and_history():
     assert msgs[1] == {"role": "user", "content": "こんにちは"}
     assert msgs[2] == {"role": "assistant", "content": "やあ！"}
     assert msgs[-1] == {"role": "user", "content": "元気？"}
+
+
+def test_minato_signature_loaded():
+    c = characters.load("minato")
+    assert c.signature == "— ミナトでした。"
+
+
+def test_finalize_reply_cuts_after_signature():
+    c = characters.load("minato")
+    looped = "わたしはミナトです。 — ミナトでした。 — ミナトでした。 — ミナトしました。"
+    assert engine.finalize_reply(c, looped) == "わたしはミナトです。 — ミナトでした。"
+
+
+def test_finalize_reply_cuts_trailing_ramble():
+    c = characters.load("minato")
+    ramble = "2です。 — ミナトでした。「おはよう」を教えて。"
+    assert engine.finalize_reply(c, ramble) == "2です。 — ミナトでした。"
+
+
+def test_finalize_reply_passthrough_without_signature_match():
+    c = characters.load("minato")
+    assert engine.finalize_reply(c, "こんにちは") == "こんにちは"
