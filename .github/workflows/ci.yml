@@ -10,6 +10,20 @@ permissions:
   contents: read
 
 jobs:
+  pii-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Scan repository for PII
+        # PII_DENYLIST is a repo secret (comma-separated personal terms kept
+        # OUT of this public repo). Fork PRs run generic patterns only.
+        env:
+          PII_DENYLIST: ${{ secrets.PII_DENYLIST }}
+        run: python scripts/check_pii.py --all
+
   test:
     runs-on: ubuntu-latest
 
@@ -28,12 +42,13 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Lint
-        run: |
-          pip install ruff
-          ruff check src/ --output-format=github
+        run: ruff check src/ --output-format=github
+
+      - name: Unit tests (PII filter)
+        run: pytest tests/ -q
 
       - name: Wait for VOICEVOX engine
         run: |

@@ -5,3 +5,7 @@ venv/
 *.log
 *.wav
 .env
+
+# Personal PII denylist for scripts/check_pii.py — NEVER commit this file
+# (it contains the very terms we're keeping out of the repo)
+.pii-denylist.txt

@@ -24,6 +24,7 @@ import requests  # noqa: E402
 import torch  # noqa: E402
 from flask import Flask, Response, jsonify, request  # noqa: E402
 from peft import PeftModel  # noqa: E402
+from pii_filter import mask_pii  # noqa: E402
 from transformers import AutoModelForCausalLM, AutoTokenizer  # noqa: E402
 
 BASE_MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
@@ -78,13 +79,16 @@ def chat():
     if not text:
         return jsonify({"error": "text is required"}), 400
 
+    # PII is masked BEFORE the text reaches the LLM (and thus before any
+    # downstream logging or synthesis can see it).
+    text, pii_found = mask_pii(text)
+
     reply = generate_reply(text)
     wav = synthesize(reply, SPEAKER)
-    return Response(
-        wav,
-        mimetype="audio/wav",
-        headers={"X-Minato-Reply-Text": quote(reply)},
-    )
+    headers = {"X-Minato-Reply-Text": quote(reply)}
+    if pii_found:
+        headers["X-Minato-PII-Masked"] = quote(",".join(pii_found))
+    return Response(wav, mimetype="audio/wav", headers=headers)
 
 
 if __name__ == "__main__":

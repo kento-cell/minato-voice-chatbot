@@ -15,6 +15,7 @@ OUT = sys.argv[1] if len(sys.argv) > 1 else "minato_architecture.png"
 
 COLORS = {
     "io": ("#DAE8FC", "#6C8EBF"),
+    "guard": ("#FFE6CC", "#D79B00"),
     "llm_box": ("#FFF2CC", "#D6B656"),
     "base": ("#F5F5F5", "#666666"),
     "lora": ("#D5E8D4", "#82B366"),
@@ -53,10 +54,12 @@ def main():
     ax.text(0.3, 7.4, "個人学習プロジェクト（完全ローカル動作・外部通信なし）", fontsize=10, color="#666666")
 
     fill, edge = COLORS["io"]
-    _, user_bottom = box(ax, (3.7, 6.3), 2.6, 0.7, "ユーザー\n（テキスト入力）", fill, edge)
+    _, user_bottom = box(ax, (3.7, 6.55), 2.6, 0.6, "ユーザー\n（テキスト入力）", fill, edge)
+
+    fill, edge = COLORS["guard"]
+    box(ax, (3.55, 5.78), 2.9, 0.5, "PIIフィルター（src/pii_filter.py）\nメール・電話・番号列等を正規表現でマスク", fill, edge, fontsize=8)
 
     fill, edge = COLORS["llm_box"]
-    llm_top = (5.0, 5.6)
     box(ax, (3.3, 3.8), 3.4, 1.8, "", fill, edge)
     ax.text(5.0, 5.35, "ミナト（キャラクターLLM）", fontsize=11, fontweight="bold", ha="center")
 
@@ -72,7 +75,8 @@ def main():
     fill, edge = COLORS["io"]
     _, out_top = box(ax, (3.7, 1.1), 2.6, 0.7, "音声出力\n（クロスプラットフォーム再生）", fill, edge)
 
-    arrow(ax, user_bottom, (5.0, 5.6), "① テキスト入力")
+    arrow(ax, user_bottom, (5.0, 6.28), "① テキスト入力")
+    arrow(ax, (5.0, 5.78), (5.0, 5.6), "①' マスク済みテキスト")
     arrow(ax, (5.0, 3.8), (5.0, 3.4), "② 応答テキストを生成")
     arrow(ax, (5.0, 2.4), (5.0, 1.8), "③ audio_query → synthesis（wav）")
 

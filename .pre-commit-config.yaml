@@ -1,0 +1,11 @@
+# Install once per clone:  pip install pre-commit && pre-commit install
+# After that, the PII scan runs automatically on every `git commit`.
+repos:
+  - repo: local
+    hooks:
+      - id: pii-check
+        name: PII scan (generic patterns + local denylist)
+        entry: python scripts/check_pii.py
+        language: system
+        types: [text]
+        exclude: ^(out/|tests/|scripts/check_pii\.py|src/pii_filter\.py)

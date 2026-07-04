@@ -13,6 +13,22 @@
   git config user.email "<GitHubID>+<username>@users.noreply.github.com"
   ```
 
+### PIIガード（3層・自動）
+
+| 層 | 仕組み | 強制力 |
+|---|---|---|
+| ランタイム | `src/pii_filter.py` がチャット入力のメール/電話/番号列等をLLMに渡る前にマスク | コード組込み（常時） |
+| CI | `pii-check` ジョブがリポジトリ全体をスキャン。検出時はマージ不可 | ルールセットで強制 |
+| pre-commit | コミット時にローカルで同じスキャンを実行（早期警告） | 要インストール（下記） |
+
+**pre-commitのセットアップ（初回のみ・推奨）:**
+```bash
+pip install -r requirements-dev.txt
+pre-commit install
+```
+
+**自分の名前を検出対象に足す:** リポジトリ直下に `.pii-denylist.txt`（gitignore済み）を作り、1行1語で自分の本名・ハンドル名を書いてください。このファイルはコミットされず、あなたのマシン上でのみスキャンに使われます。CI側は同じ内容をリポジトリSecret `PII_DENYLIST` で保持しています（新しい作業者が入ったらSecretにも追記）。
+
 ## 開発フロー
 
 `main` への直接pushは**ルールセットでブロック**されています。必ず:
