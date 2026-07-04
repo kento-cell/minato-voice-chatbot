@@ -35,10 +35,12 @@ EMAIL_ALLOWLIST = re.compile(
 
 # Digit-boundary lookarounds instead of \b: kanji/kana count as word chars in
 # Python's re, so \b silently fails to match at Japanese-text/digit boundaries.
+# Separators are OPTIONAL: `09012345678` must be caught as well as
+# `090-1234-5678` (gap found by automated PR review, see PR #2).
 GENERIC_RULES: list[tuple[str, re.Pattern]] = [
     ("email", re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")),
-    ("jp-phone", re.compile(r"(?<!\d)0\d{1,3}[-ー‐ ]\d{1,4}[-ー‐ ]\d{4}(?!\d)")),
-    ("long-digit-run", re.compile(r"(?<!\d)\d{4}[ -]\d{4}[ -]\d{4}(?:[ -]\d{4})?(?!\d)")),
+    ("jp-phone", re.compile(r"(?<!\d)0\d{1,3}[-ー‐ ]?\d{1,4}[-ー‐ ]?\d{4}(?!\d)")),
+    ("long-digit-run", re.compile(r"(?<!\d)\d{4}[ -]?\d{4}[ -]?\d{4}(?:[ -]?\d{4})?(?!\d)")),
 ]
 
 
