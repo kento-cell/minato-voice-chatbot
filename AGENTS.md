@@ -22,6 +22,7 @@ pip install -r requirements.txt          # 依存インストール
 docker compose up voicevox               # TTSエンジン起動（port 50021）
 python src/minato_talk.py                # デスクトップ対話モード
 python src/api.py                        # ヘッドレスAPI（port 8080）
+python src/webapp.py                     # ブラウザ音声チャット（http://127.0.0.1:8080）
 python data/make_data.py                 # 学習データ再生成
 python finetune_lora.py                  # LoRA再学習（GPU推奨、CPUでも可）
 ruff check src/                          # lint（CIと同じ）
