@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>voice-chat-bot — 分身と話す</title>
+<style>
+  :root { --bg:#14181e; --card:#1d232c; --ink:#e8ebef; --sub:#8b96a3; --accent:#4f8fd0; --me:#2c3b4e; --bot:#243329; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:"Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif; }
+  main { max-width:640px; margin:0 auto; padding:16px; display:flex; flex-direction:column; height:100dvh; }
+  header { display:flex; gap:10px; align-items:center; padding-bottom:12px; }
+  header h1 { font-size:16px; margin:0; flex:1; }
+  select,button,input { font:inherit; border-radius:8px; border:1px solid #333c47; background:var(--card); color:var(--ink); }
+  select { padding:6px 10px; }
+  #log { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:8px 0; }
+  .msg { max-width:85%; padding:8px 12px; border-radius:10px; line-height:1.6; font-size:14px; white-space:pre-wrap; }
+  .me { background:var(--me); align-self:flex-end; }
+  .bot { background:var(--bot); align-self:flex-start; }
+  .sys { color:var(--sub); font-size:12px; align-self:center; }
+  #controls { display:flex; gap:8px; padding-top:12px; }
+  #text { flex:1; padding:10px 12px; }
+  #send { padding:10px 14px; cursor:pointer; }
+  #mic { width:100%; margin-top:8px; padding:14px; font-size:15px; font-weight:bold; cursor:pointer;
+         background:var(--accent); border:none; color:#fff; border-radius:10px; user-select:none; -webkit-user-select:none; touch-action:none; }
+  #mic.rec { background:#c0483a; }
+  #mic:disabled { opacity:.5; }
+  #reset { font-size:12px; padding:6px 10px; color:var(--sub); cursor:pointer; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>🎙️ voice-chat-bot</h1>
+    <select id="chara"></select>
+    <button id="reset" title="会話履歴をリセット">リセット</button>
+  </header>
+
+  <div id="log"><div class="sys">キャラを選んで、下のボタンを押しながら話してください（テキスト入力もOK）</div></div>
+
+  <div id="controls">
+    <input id="text" placeholder="テキストで話す…" autocomplete="off">
+    <button id="send">送信</button>
+  </div>
+  <button id="mic" disabled>🎤 押しながら話す</button>
+</main>
+
+<script>
+const log = document.getElementById('log');
+const charaSel = document.getElementById('chara');
+const micBtn = document.getElementById('mic');
+const textIn = document.getElementById('text');
+
+function add(cls, text) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + cls;
+  d.textContent = text;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+  return d;
+}
+
+async function init() {
+  const cs = await (await fetch('/characters')).json();
+  for (const c of cs) {
+    const o = document.createElement('option');
+    o.value = c.name; o.textContent = c.display_name;
+    charaSel.appendChild(o);
+  }
+}
+init();
+
+function handleResult(r) {
+  if (r.error) { add('sys', '⚠ ' + r.error); return; }
+  if (r.pii_masked && r.pii_masked.length) add('sys', '（' + r.pii_masked.join('/') + ' をマスクしました）');
+  add('me', r.you);
+  add('bot', r.character + ': ' + r.reply);
+  new Audio('data:audio/wav;base64,' + r.audio).play();
+}
+
+async function sendText() {
+  const t = textIn.value.trim();
+  if (!t) return;
+  textIn.value = '';
+  const thinking = add('sys', '…考え中…');
+  try {
+    const r = await (await fetch('/chat-json', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({text: t, character: charaSel.value})
+    })).json();
+    thinking.remove();
+    handleResult(r);
+  } catch (e) { thinking.textContent = '⚠ 通信エラー: ' + e; }
+}
+document.getElementById('send').onclick = sendText;
+textIn.addEventListener('keydown', e => { if (e.key === 'Enter') sendText(); });
+
+document.getElementById('reset').onclick = async () => {
+  await fetch('/reset', {method:'POST', headers:{'Content-Type':'application/json'},
+                         body: JSON.stringify({character: charaSel.value})});
+  add('sys', '会話履歴をリセットしました');
+};
+
+// ---- hold-to-talk mic ----
+let recorder = null, chunks = [];
+async function setupMic() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    recorder = new MediaRecorder(stream);
+    recorder.ondataavailable = e => chunks.push(e.data);
+    recorder.onstop = async () => {
+      const blob = new Blob(chunks, {type: recorder.mimeType});
+      chunks = [];
+      if (blob.size < 2000) { add('sys', '（録音が短すぎます）'); return; }
+      const fd = new FormData();
+      fd.append('audio', blob, 'speech.webm');
+      fd.append('character', charaSel.value);
+      const thinking = add('sys', '…聞き取り＆考え中…');
+      try {
+        const r = await (await fetch('/chat-audio', {method: 'POST', body: fd})).json();
+        thinking.remove();
+        handleResult(r);
+      } catch (e) { thinking.textContent = '⚠ 通信エラー: ' + e; }
+    };
+    micBtn.disabled = false;
+  } catch (e) {
+    add('sys', '⚠ マイクが使えません: ' + e.message);
+  }
+}
+setupMic();
+
+function startRec(e) { e.preventDefault(); if (!recorder || recorder.state === 'recording') return;
+  recorder.start(); micBtn.classList.add('rec'); micBtn.textContent = '🔴 録音中…（離すと送信）'; }
+function stopRec(e)  { e.preventDefault(); if (!recorder || recorder.state !== 'recording') return;
+  recorder.stop(); micBtn.classList.remove('rec'); micBtn.textContent = '🎤 押しながら話す'; }
+
+micBtn.addEventListener('mousedown', startRec);
+micBtn.addEventListener('mouseup', stopRec);
+micBtn.addEventListener('mouseleave', stopRec);
+micBtn.addEventListener('touchstart', startRec);
+micBtn.addEventListener('touchend', stopRec);
+</script>
+</body>
+</html>
