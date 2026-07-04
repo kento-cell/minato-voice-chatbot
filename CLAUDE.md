@@ -1,4 +1,4 @@
-# minato-voice-chatbot — Claude Code 向けプロジェクト指示
+# voice-chat-bot — Claude Code 向けプロジェクト指示
 
 日本語ボイスチャットボット。LoRA微調整した0.5B LLM（ペルソナ「ミナト」）+ VOICEVOX TTS。完全ローカル動作の個人学習プロジェクト。
 

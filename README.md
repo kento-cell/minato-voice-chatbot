@@ -1,7 +1,7 @@
 # ミナト (Minato) — a tiny voice AI chatbot
 
-![CI](https://github.com/kento-cell/minato-voice-chatbot/actions/workflows/ci.yml/badge.svg)
-![CD](https://github.com/kento-cell/minato-voice-chatbot/actions/workflows/cd.yml/badge.svg)
+![CI](https://github.com/kento-cell/voice-chat-bot/actions/workflows/ci.yml/badge.svg)
+![CD](https://github.com/kento-cell/voice-chat-bot/actions/workflows/cd.yml/badge.svg)
 
 A personal learning project: a small, fully local voice-chatbot persona built by
 LoRA-fine-tuning an open-source 0.5B-parameter LLM and giving it a voice with

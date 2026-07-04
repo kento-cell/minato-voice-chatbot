@@ -54,8 +54,8 @@ pre-commit install
 ## セットアップ（初回のみ）
 
 ```bash
-git clone https://github.com/kento-cell/minato-voice-chatbot.git
-cd minato-voice-chatbot
+git clone https://github.com/kento-cell/voice-chat-bot.git
+cd voice-chat-bot
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
