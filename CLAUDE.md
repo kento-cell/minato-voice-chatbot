@@ -30,7 +30,7 @@ python architecture/generate_architecture_diagram.py  # 構成図PNG再生成
 
 ## アーキテクチャ
 
-ユーザー入力 → LLM（Qwen2.5-0.5B + `out/lora/` のLoRAアダプタ）→ VOICEVOX API（`VOICEVOX_URL`, デフォルト `http://127.0.0.1:50021`）→ WAV。
+ユーザー入力 → PIIフィルター → LLM（Qwen2.5-0.5B + キャラパックの `characters/<name>/lora/`）→ VOICEVOX API（`VOICEVOX_URL`, デフォルト `http://127.0.0.1:50021`）→ WAV。
 詳細は `architecture/minato_architecture.drawio` と README参照。
 
 ## 注意事項

@@ -1,15 +1,53 @@
-# ミナト (Minato) — a tiny voice AI chatbot
+# voice-chat-bot — 分身たちの声の遊び場
 
 ![CI](https://github.com/kento-cell/voice-chat-bot/actions/workflows/ci.yml/badge.svg)
 ![CD](https://github.com/kento-cell/voice-chat-bot/actions/workflows/cd.yml/badge.svg)
 
-A personal learning project: a small, fully local voice-chatbot persona built by
-LoRA-fine-tuning an open-source 0.5B-parameter LLM and giving it a voice with
-[VOICEVOX](https://voicevox.hiroshiba.jp/). No cloud APIs, no external calls at
-inference time.
+**自分の「分身キャラ」を作って持ち寄り、声で会話して遊ぶ、完全ローカルの音声チャットボット。**
+LoRA微調整した軽量LLM（0.5B）＋ [VOICEVOX](https://voicevox.hiroshiba.jp/) 音声合成。
+クラウドAPI不使用・推論時の外部通信ゼロ・低スペックPC（GPU無し）でも動きます。
 
-This repo intentionally contains **no company names or personal names** — it's
-published as a standalone individual project.
+A fully-local voice-chatbot playground: bring your own AI alter-ego
+(persona card + optional LoRA + voice). No cloud APIs, no external calls at
+inference time. This repo intentionally contains no company or personal names.
+
+## 🚀 クイックスタート（3ステップ・5分）
+
+```bash
+# 1. 取得と依存インストール
+git clone https://github.com/kento-cell/voice-chat-bot.git
+cd voice-chat-bot
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+# 2. 音声エンジン起動（どちらか。Dockerが楽）
+docker compose up voicevox        # または VOICEVOXデスクトップアプリを起動
+
+# 3. 話す（初回はLLMを自動ダウンロード、以降オフライン可）
+python src/minato_talk.py
+```
+
+テキストを打つとキャラが**声で**返事します。`exit`で終了。GPU不要（あれば自動で使用）。
+
+```bash
+python src/minato_talk.py --list-characters   # いるキャラの一覧
+python src/minato_talk.py --character minato  # キャラを指定して会話
+```
+
+## 🎭 遊び方と運用ルール（参加したい人へ）
+
+**自分のキャラを作るのに必要なのはMarkdown 1枚**（プログラミング不要・5分）。
+手順は [CONTRIBUTING.md](CONTRIBUTING.md) の「自分のキャラクターを作る」参照。
+
+| ルール | 内容 | 強制方法 |
+|---|---|---|
+| 自分の部屋だけ | 触ってよいのは `characters/<自分のキャラ>/` のみ。1PR=1キャラ | CI（repo-guard）が自動判定 |
+| 承認は不要 | 自分のキャラのPRは、CI緑になれば**自分でマージしてOK** | ルールセット設定済み |
+| コアは立入禁止 | `src/`等の変更はオーナーのみ。提案はIssueへ | CI（repo-guard） |
+| 声は持ち込まない | 声モデル（生体情報）はコミット禁止・各自ローカル保管 | .gitignore＋CI（pack-lint） |
+| 個人情報ゼロ | 実名・社名・連絡先をリポジトリに入れない | CI（pii-check） |
+
+ルール違反のPRは**マージボタンが物理的に押せなくなる**ので、壊す心配なく気軽にどうぞ。
 
 ## Architecture
 
@@ -68,8 +106,8 @@ python src/minato_talk.py
 ```
 
 ```
-python src/minato_talk.py --list-speakers   # see all available voices
-python src/minato_talk.py --speaker 3       # pick a different voice
+python src/minato_talk.py --list-characters   # discovered character packs
+python src/minato_talk.py --list-speakers     # available VOICEVOX voices
 ```
 
 ### 2. Headless API mode (containerized, no speakers needed)
@@ -138,13 +176,13 @@ python finetune_lora.py        # trains out/lora/ — copy into your pack's lora
 **このリポジトリをフォークする方へ**
 - 本家リポジトリのCI保護・ブランチ保護・Secretは**フォーク先には引き継がれません**。フォークで自分の声モデルや個人データを扱う場合は、フォークをPrivateにするか、同等の保護（Actions有効化等）を自分で設定してください
 
-## Known limitations
+## Known limitations / Roadmap
 
-- No microphone input yet (text in, voice out only).
-- No conversation memory (single-turn only).
-- Trained on only 19 examples — outside that narrow scope it can produce
-  plausible-sounding but incorrect answers (small-model hallucination), not
-  general intelligence.
+- マイク入力は未実装（テキスト入力→音声出力のみ）。**Phase 2**で対応予定（faster-whisper・CPU可）
+- 会話記憶はセッション内のみ（直近10ターン・ディスク保存なし）
+- キャラ同士の自動会話（デュエットモード）は**Phase 3**、本人声クローン対応（Style-Bert-VITS2等）は**Phase 4**で予定
+- ミナトの学習データは19件のみ — その範囲外の質問には、もっともらしい誤答をすることがあります（小型モデルの既知の限界であり仕様です）
+- Linuxでデスクトップ再生する場合、`libportaudio2` のインストールが必要なことがあります（`sudo apt install libportaudio2`）
 
 ## License
 
