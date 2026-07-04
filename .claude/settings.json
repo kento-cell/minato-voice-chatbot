@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "ask": [
+      "Edit(src/**)",
+      "Write(src/**)",
+      "Edit(scripts/**)",
+      "Write(scripts/**)",
+      "Edit(.github/**)",
+      "Write(.github/**)",
+      "Edit(data/**)",
+      "Write(data/**)",
+      "Edit(Dockerfile)",
+      "Edit(docker-compose.yml)",
+      "Edit(requirements.txt)",
+      "Edit(requirements-dev.txt)"
+    ]
+  }
+}

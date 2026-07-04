@@ -14,9 +14,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src/ ./src/
-COPY out/ ./out/
+COPY characters/ ./characters/
 
 ENV VOICEVOX_URL=http://voicevox:50021
+# Inside a container, binding beyond loopback is required for port mapping.
+# (Native runs default to 127.0.0.1 -- see src/api.py.)
+ENV API_HOST=0.0.0.0
 EXPOSE 8080
 
 CMD ["python", "src/api.py"]
