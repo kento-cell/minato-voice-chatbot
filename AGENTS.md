@@ -1,4 +1,4 @@
-# minato-voice-chatbot — AIエージェント（Codex等）向けプロジェクト指示
+# voice-chat-bot — AIエージェント（Codex等）向けプロジェクト指示
 
 日本語ボイスチャットボット。LoRA微調整した0.5B LLM（ペルソナ「ミナト」）+ VOICEVOX TTS。完全ローカル動作の個人学習プロジェクト。
 
