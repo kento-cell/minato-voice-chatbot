@@ -14,6 +14,9 @@ Env vars (machine-local settings, not pack settings):
   MINATO_BASE_MODEL  LLM base model (default: Qwen/Qwen2.5-0.5B-Instruct;
                      GPU machines can point at a bigger instruct model)
   VOICEVOX_URL       VOICEVOX engine URL (default: http://127.0.0.1:50021)
+  VOICEVOX_ENGINE_EXE path to the engine binary (vv-engine/run.exe in the
+                     VOICEVOX install dir); when set, the engine is started
+                     headless automatically if it isn't running
   API_HOST           bind address (default: 127.0.0.1 — loopback only)
   PORT               port (default: 8080)
 
@@ -23,6 +26,8 @@ is written to disk.
 import base64
 import io
 import os
+import subprocess
+import time
 from collections import defaultdict, deque
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
@@ -86,6 +91,39 @@ def transcribe(audio_bytes: bytes) -> str:
     if text in _HALLUCINATION_PHRASES:
         return ""
     return text
+
+
+def ensure_voicevox() -> bool:
+    """Start the VOICEVOX engine headless if it isn't already running.
+
+    Set VOICEVOX_ENGINE_EXE to the engine binary (vv-engine/run.exe inside the
+    VOICEVOX install dir) and the desktop app window is no longer needed —
+    the engine runs in the background with no GUI.
+    """
+    try:
+        requests.get(f"{VOICEVOX_URL}/version", timeout=2)
+        return True
+    except requests.RequestException:
+        pass
+    exe = os.environ.get("VOICEVOX_ENGINE_EXE")
+    if not exe or not os.path.exists(exe):
+        print("⚠ VOICEVOXが起動していません。VOICEVOXアプリを起動するか、")
+        print("  環境変数 VOICEVOX_ENGINE_EXE にエンジン(vv-engine/run.exe)のパスを設定してください")
+        return False
+    print("VOICEVOXエンジンを自動起動します（ウィンドウなし）…")
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    subprocess.Popen([exe], creationflags=flags,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for _ in range(60):
+        time.sleep(2)
+        try:
+            requests.get(f"{VOICEVOX_URL}/version", timeout=2)
+            print("VOICEVOXエンジン起動完了")
+            return True
+        except requests.RequestException:
+            continue
+    print("⚠ VOICEVOXエンジンの起動確認がタイムアウトしました")
+    return False
 
 
 def synthesize(text: str, speaker: int) -> bytes:
@@ -168,5 +206,6 @@ def reset():
 if __name__ == "__main__":
     host = os.environ.get("API_HOST", "127.0.0.1")
     port = int(os.environ.get("PORT", "8080"))
+    ensure_voicevox()
     print(f"ボイスチャット起動: http://{host}:{port}  (base={resolve_base_model()})")
     app.run(host=host, port=port)
