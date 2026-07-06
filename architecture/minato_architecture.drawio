@@ -20,7 +20,7 @@
         </mxCell>
 
         <!-- STT -->
-        <mxCell id="sttBox" value="音声認識 faster-whisper（ローカルSTT・CPU可）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=10;" vertex="1" parent="1">
+        <mxCell id="sttBox" value="音声認識 faster-whisper（サイズはマシン別設定・CPU可）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="270" y="152" width="220" height="30" as="geometry" />
         </mxCell>
         <mxCell id="eStt" style="edgeStyle=orthogonalEdgeStyle;html=1;" edge="1" parent="1" source="sttBox" target="piiFilter">

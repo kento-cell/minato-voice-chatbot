@@ -57,7 +57,7 @@ def main():
     box(ax, (3.7, 6.75), 2.6, 0.5, "ユーザー\n（マイク音声／テキスト）", fill, edge, fontsize=9)
 
     fill, edge = COLORS["io"]
-    box(ax, (3.55, 5.98), 2.9, 0.44, "音声認識 faster-whisper（ローカルSTT・CPU可）", fill, edge, fontsize=8)
+    box(ax, (3.55, 5.98), 2.9, 0.44, "音声認識 faster-whisper（サイズはマシン別設定・CPU可）", fill, edge, fontsize=8)
 
     fill, edge = COLORS["guard"]
     box(ax, (3.55, 5.42), 2.9, 0.44, "PIIフィルター（src/pii_filter.py）正規表現マスク", fill, edge, fontsize=8)
