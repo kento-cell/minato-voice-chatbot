@@ -16,3 +16,6 @@ venv/
 characters/*/voice/*
 !characters/*/voice/.gitkeep
 !characters/*/voice/README.md
+
+# machine-local launcher scripts
+start-local.*
