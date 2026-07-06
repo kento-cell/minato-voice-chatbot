@@ -74,16 +74,18 @@ def generate(tok, model, messages: list[dict], max_new_tokens: int = 120) -> str
     return tok.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
 
 def finalize_reply(character: Character, reply: str) -> str:
-    """Cut the reply after the first occurrence of the character's signature.
+    """Truncate at the character's signature phrase and strip the phrase itself.
 
-    Small models drift or loop AFTER emitting their closing phrase
-    ("— ミナトでした。 — ミナトでした。…"); token-level penalties can't fix
-    this without corrupting the phrase itself (HF processors also penalize
-    prompt/history tokens). Truncating at the signature is loop-proof and
-    persona-preserving.
+    The signature doubles as a stop marker: small models drift or loop AFTER
+    emitting their trained closing phrase ("— ミナトでした。…"), and token-level
+    penalties can't fix that without corrupting the phrase (HF processors also
+    penalize prompt/history tokens). The LoRA weights keep emitting the phrase
+    regardless of the persona card, so removal happens here in post-processing.
     """
     if character.signature:
         idx = reply.find(character.signature)
         if idx >= 0:
-            return reply[: idx + len(character.signature)]
+            remainder = reply[:idx].rstrip(" 　\n—ー-")
+            if remainder:
+                return remainder
     return reply
