@@ -21,10 +21,13 @@
   #controls { display:flex; gap:8px; padding-top:12px; }
   #text { flex:1; padding:10px 12px; }
   #send { padding:10px 14px; cursor:pointer; }
+  #micRow { display:flex; gap:8px; margin-top:8px; align-items:center; }
+  #micSel { flex:1; min-width:0; font-size:12px; padding:6px 8px; color:var(--sub); }
+  #meterWrap { width:90px; height:10px; background:#0d1117; border-radius:5px; overflow:hidden; border:1px solid #333c47; }
+  #meter { height:100%; width:0%; background:linear-gradient(90deg,#3fb950,#d29922,#f85149); transition:width .06s linear; }
   #mic { width:100%; margin-top:8px; padding:14px; font-size:15px; font-weight:bold; cursor:pointer;
          background:var(--accent); border:none; color:#fff; border-radius:10px; user-select:none; -webkit-user-select:none; touch-action:none; }
   #mic.rec { background:#c0483a; }
-  #mic:disabled { opacity:.5; }
   #reset { font-size:12px; padding:6px 10px; color:var(--sub); cursor:pointer; }
 </style>
 </head>
@@ -36,19 +39,25 @@
     <button id="reset" title="会話履歴をリセット">リセット</button>
   </header>
 
-  <div id="log"><div class="sys">キャラを選んで、下のボタンを押しながら話してください（テキスト入力もOK）</div></div>
+  <div id="log"><div class="sys">キャラを選んで、下のボタンを押しながら話してください（テキスト入力もOK）。初回はマイク許可を求められます</div></div>
 
   <div id="controls">
     <input id="text" placeholder="テキストで話す…" autocomplete="off">
     <button id="send">送信</button>
   </div>
-  <button id="mic" disabled>🎤 押しながら話す</button>
+  <div id="micRow">
+    <select id="micSel" title="使用するマイク"><option value="">🎙 マイク: ボタン初回押下で選択可になります</option></select>
+    <div id="meterWrap" title="入力音量"><div id="meter"></div></div>
+  </div>
+  <button id="mic">🎤 押しながら話す</button>
 </main>
 
 <script>
 const log = document.getElementById('log');
 const charaSel = document.getElementById('chara');
 const micBtn = document.getElementById('mic');
+const micSel = document.getElementById('micSel');
+const meter = document.getElementById('meter');
 const textIn = document.getElementById('text');
 
 function add(cls, text) {
@@ -101,38 +110,110 @@ document.getElementById('reset').onclick = async () => {
   add('sys', '会話履歴をリセットしました');
 };
 
-// ---- hold-to-talk mic ----
-let recorder = null, chunks = [];
-async function setupMic() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
-    recorder = new MediaRecorder(stream);
-    recorder.ondataavailable = e => chunks.push(e.data);
-    recorder.onstop = async () => {
-      const blob = new Blob(chunks, {type: recorder.mimeType});
-      chunks = [];
-      if (blob.size < 2000) { add('sys', '（録音が短すぎます）'); return; }
-      const fd = new FormData();
-      fd.append('audio', blob, 'speech.webm');
-      fd.append('character', charaSel.value);
-      const thinking = add('sys', '…聞き取り＆考え中…');
-      try {
-        const r = await (await fetch('/chat-audio', {method: 'POST', body: fd})).json();
-        thinking.remove();
-        handleResult(r);
-      } catch (e) { thinking.textContent = '⚠ 通信エラー: ' + e; }
-    };
-    micBtn.disabled = false;
-  } catch (e) {
-    add('sys', '⚠ マイクが使えません: ' + e.message);
+// ---- mic: permission is requested on FIRST PRESS (a user gesture), never on
+// page load — load-time getUserMedia prompts are silently suppressed by some
+// browsers, leaving the button dead. A live level meter + device picker make
+// "the browser is capturing the wrong (silent) device" visible and fixable.
+let stream = null, recorder = null, chunks = [], audioCtx = null, analyser = null;
+let peakLevel = 0, meterTimer = null, pendingStart = false;
+
+async function ensureStream(deviceId) {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  const constraints = {audio: deviceId ? {deviceId: {exact: deviceId}} : true};
+  stream = await navigator.mediaDevices.getUserMedia(constraints);
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 512;
+  audioCtx.createMediaStreamSource(stream).connect(analyser);
+  if (!meterTimer) {
+    const buf = new Uint8Array(analyser.fftSize);
+    meterTimer = setInterval(() => {
+      if (!analyser) return;
+      analyser.getByteTimeDomainData(buf);
+      let max = 0;
+      for (const v of buf) max = Math.max(max, Math.abs(v - 128) / 128);
+      meter.style.width = Math.min(100, max * 300) + '%';
+      if (recorder && recorder.state === 'recording') peakLevel = Math.max(peakLevel, max);
+    }, 80);
+  }
+  await refreshDeviceList();
+  const label = stream.getAudioTracks()[0].label || '(不明なデバイス)';
+  add('sys', '🎙 使用マイク: ' + label + '（下のメーターが声で動くか確認してください）');
+}
+
+async function refreshDeviceList() {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const inputs = devices.filter(d => d.kind === 'audioinput' && d.deviceId);
+  const currentLabel = stream ? stream.getAudioTracks()[0].label : '';
+  micSel.innerHTML = '';
+  for (const d of inputs) {
+    const o = document.createElement('option');
+    o.value = d.deviceId; o.textContent = '🎙 ' + (d.label || 'マイク');
+    if (d.label && d.label === currentLabel) o.selected = true;
+    micSel.appendChild(o);
   }
 }
-setupMic();
 
-function startRec(e) { e.preventDefault(); if (!recorder || recorder.state === 'recording') return;
-  recorder.start(); micBtn.classList.add('rec'); micBtn.textContent = '🔴 録音中…（離すと送信）'; }
-function stopRec(e)  { e.preventDefault(); if (!recorder || recorder.state !== 'recording') return;
-  recorder.stop(); micBtn.classList.remove('rec'); micBtn.textContent = '🎤 押しながら話す'; }
+micSel.addEventListener('change', async () => {
+  try { await ensureStream(micSel.value); }
+  catch (e) { add('sys', '⚠ マイク切替失敗: ' + e.message); }
+});
+
+async function startRec(e) {
+  e.preventDefault();
+  if (pendingStart || (recorder && recorder.state === 'recording')) return;
+  if (!stream) {
+    pendingStart = true;
+    micBtn.textContent = '🎤 マイク許可を待っています…（ブラウザの許可ダイアログに答えてください）';
+    try { await ensureStream(); }
+    catch (err) {
+      pendingStart = false;
+      micBtn.textContent = '🎤 押しながら話す';
+      const hint = err.name === 'NotAllowedError'
+        ? 'マイクがブロックされています。アドレスバーのマイク/サイト設定アイコンから「許可」にしてページを再読み込みしてください'
+        : err.message;
+      add('sys', '⚠ マイクを使えません: ' + hint);
+      return;
+    }
+    pendingStart = false;
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  peakLevel = 0;
+  recorder = new MediaRecorder(stream);
+  chunks = [];
+  recorder.ondataavailable = ev => chunks.push(ev.data);
+  recorder.onstop = onRecStop;
+  recorder.start();
+  micBtn.classList.add('rec');
+  micBtn.textContent = '🔴 録音中…（離すと送信）';
+}
+
+function stopRec(e) {
+  e.preventDefault();
+  if (!recorder || recorder.state !== 'recording') return;
+  recorder.stop();
+  micBtn.classList.remove('rec');
+  micBtn.textContent = '🎤 押しながら話す';
+}
+
+async function onRecStop() {
+  const blob = new Blob(chunks, {type: recorder.mimeType});
+  chunks = [];
+  if (blob.size < 2000) { add('sys', '（録音が短すぎます。ボタンを押している間だけ録音されます）'); return; }
+  if (peakLevel < 0.02) {
+    add('sys', '⚠ 録音中の音量がほぼゼロでした（メーターが動いていません）。上のマイク選択で実際に使っているマイクを選び直してください');
+    return;
+  }
+  const fd = new FormData();
+  fd.append('audio', blob, 'speech.webm');
+  fd.append('character', charaSel.value);
+  const thinking = add('sys', '…聞き取り＆考え中…');
+  try {
+    const r = await (await fetch('/chat-audio', {method: 'POST', body: fd})).json();
+    thinking.remove();
+    handleResult(r);
+  } catch (e) { thinking.textContent = '⚠ 通信エラー: ' + e; }
+}
 
 micBtn.addEventListener('mousedown', startRec);
 micBtn.addEventListener('mouseup', stopRec);
