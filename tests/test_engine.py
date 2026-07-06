@@ -76,3 +76,14 @@ def test_finalize_reply_keeps_signature_only_reply():
 def test_finalize_reply_passthrough_without_signature_match():
     c = characters.load("minato")
     assert engine.finalize_reply(c, "こんにちは") == "こんにちは"
+
+
+def test_finalize_reply_strips_signature_variant_without_dash():
+    # the model often drops the dash: "おはよう、ミナトでした。"
+    c = characters.load("minato")
+    assert engine.finalize_reply(c, "おはよう、ミナトでした。") == "おはよう"
+
+
+def test_finalize_reply_strips_mid_sentence_variant():
+    c = characters.load("minato")
+    assert engine.finalize_reply(c, "元気です、ミナトでした。また明日。") == "元気です"
