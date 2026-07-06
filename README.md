@@ -95,10 +95,21 @@ python src/webapp.py
 マシン性能に合わせた調整（環境変数）:
 
 ```bash
-STT_MODEL=tiny python src/webapp.py        # 低スペックPC: 音声認識を軽量化（tiny/base/small）
-MINATO_BASE_MODEL=Qwen/Qwen2.5-7B-Instruct python src/webapp.py
-                                           # GPU持ち: 頭脳を大型化して会話品質UP
+STT_MODEL=tiny python src/webapp.py        # 音声認識モデルの指定（tiny/base/small/medium/large-v3-turbo）
+MINATO_BASE_MODEL=Qwen/Qwen2.5-1.5B-Instruct python src/webapp.py
+                                           # LLMベースモデルの指定
+VOICEVOX_ENGINE_EXE="<VOICEVOXインストール先>/vv-engine/run.exe" python src/webapp.py
+                                           # VOICEVOXエンジンをウィンドウなしで自動起動
 ```
+
+マシン別の推奨構成（コードは共通・環境変数だけ変える）:
+
+| マシン | 推奨設定 | 体験の目安 |
+|---|---|---|
+| GPUなし | 既定のまま（0.5B + small）。重ければ `STT_MODEL=tiny` | 動く・キャラの雰囲気を楽しむ |
+| GPU 4〜6GB | `MINATO_BASE_MODEL=Qwen/Qwen2.5-1.5B-Instruct` + `STT_MODEL=medium` | 会話がほぼ成立 |
+| GPU 8GB | 1.5B + `STT_MODEL=large-v3-turbo`（実測VRAM約6.7GB） | 聞き取りも会話も実用 |
+| GPU 12GB以上 | 3B〜7B + `large-v3` | さらに賢い会話 |
 
 ※ベースモデルを変えた場合、0.5B用のLoRAは自動でスキップされ、人格カードのみでキャラが動きます。
 ※初回はSTTモデル（small≒460MB）とLLMを自動ダウンロードします。
