@@ -115,12 +115,21 @@ document.getElementById('reset').onclick = async () => {
 // browsers, leaving the button dead. A live level meter + device picker make
 // "the browser is capturing the wrong (silent) device" visible and fixable.
 let stream = null, recorder = null, chunks = [], audioCtx = null, analyser = null;
-let peakLevel = 0, meterTimer = null, pendingStart = false;
+let peakLevel = 0, meterTimer = null, pendingStart = false, micHeld = false;
 
 async function ensureStream(deviceId) {
   if (stream) stream.getTracks().forEach(t => t.stop());
   const constraints = {audio: deviceId ? {deviceId: {exact: deviceId}} : true};
-  stream = await navigator.mediaDevices.getUserMedia(constraints);
+  try {
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+  } catch (e) {
+    // saved/requested device may have been unplugged — fall back to default
+    if (deviceId && (e.name === 'OverconstrainedError' || e.name === 'NotFoundError')) {
+      stream = await navigator.mediaDevices.getUserMedia({audio: true});
+    } else { throw e; }
+  }
+  const settings = stream.getAudioTracks()[0].getSettings();
+  if (settings.deviceId) localStorage.setItem('micDevice', settings.deviceId);
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   analyser = audioCtx.createAnalyser();
   analyser.fftSize = 512;
@@ -161,11 +170,12 @@ micSel.addEventListener('change', async () => {
 
 async function startRec(e) {
   e.preventDefault();
+  micHeld = true;
   if (pendingStart || (recorder && recorder.state === 'recording')) return;
   if (!stream) {
     pendingStart = true;
     micBtn.textContent = '🎤 マイク許可を待っています…（ブラウザの許可ダイアログに答えてください）';
-    try { await ensureStream(); }
+    try { await ensureStream(localStorage.getItem('micDevice') || undefined); }
     catch (err) {
       pendingStart = false;
       micBtn.textContent = '🎤 押しながら話す';
@@ -176,6 +186,9 @@ async function startRec(e) {
       return;
     }
     pendingStart = false;
+    // permission dialog may outlive the press: if the button was already
+    // released, don't start a recording nobody is holding
+    if (!micHeld) { micBtn.textContent = '🎤 押しながら話す'; return; }
   }
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   peakLevel = 0;
@@ -190,6 +203,7 @@ async function startRec(e) {
 
 function stopRec(e) {
   e.preventDefault();
+  micHeld = false;
   if (!recorder || recorder.state !== 'recording') return;
   recorder.stop();
   micBtn.classList.remove('rec');

@@ -55,16 +55,22 @@ def test_minato_signature_loaded():
     assert c.signature == "— ミナトでした。"
 
 
-def test_finalize_reply_cuts_after_signature():
+def test_finalize_reply_strips_signature_and_loop():
     c = characters.load("minato")
     looped = "わたしはミナトです。 — ミナトでした。 — ミナトでした。 — ミナトしました。"
-    assert engine.finalize_reply(c, looped) == "わたしはミナトです。 — ミナトでした。"
+    assert engine.finalize_reply(c, looped) == "わたしはミナトです。"
 
 
-def test_finalize_reply_cuts_trailing_ramble():
+def test_finalize_reply_strips_signature_and_ramble():
     c = characters.load("minato")
     ramble = "2です。 — ミナトでした。「おはよう」を教えて。"
-    assert engine.finalize_reply(c, ramble) == "2です。 — ミナトでした。"
+    assert engine.finalize_reply(c, ramble) == "2です。"
+
+
+def test_finalize_reply_keeps_signature_only_reply():
+    # if the model emitted ONLY the signature, stripping would leave nothing
+    c = characters.load("minato")
+    assert engine.finalize_reply(c, "— ミナトでした。") == "— ミナトでした。"
 
 
 def test_finalize_reply_passthrough_without_signature_match():
