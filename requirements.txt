@@ -1,7 +1,7 @@
 # Plain PyPI torch (CPU) for maximum portability -- works on any machine, no GPU required.
 # If you have an NVIDIA GPU and want faster inference, install the CUDA build instead:
 #   pip install torch --index-url https://download.pytorch.org/whl/cu124
-torch==2.6.0
+torch==2.12.1
 transformers==5.12.1
 peft==0.19.1
 trl==1.6.0
